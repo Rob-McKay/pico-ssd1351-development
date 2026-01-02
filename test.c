@@ -13,8 +13,8 @@ int main()
     while (true)
     {
         ssd1351_fill_screen(colour);
-        colour++;
-        printf("Colour = %04X\n", colour);
-        sleep_ms(1000);
+        colour+=8;
+        //printf("Colour = %04X\n", colour);
+        sleep_ms(200);
     }
 }

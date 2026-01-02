@@ -33,6 +33,8 @@ project(test C CXX ASM)
 # Initialise the Raspberry Pi Pico SDK
 pico_sdk_init()
 
+add_link_options("-Wl,--print-memory-usage")
+
 # Add executable. Default name is the project name, version 0.1
 
 add_executable(test test.c ssd1351.c)
@@ -47,6 +49,7 @@ pico_enable_stdio_usb(test 1)
 # Add the standard library to the build
 target_link_libraries(test
         pico_stdlib hardware_spi hardware_gpio)
+
 
 # Add the standard include files to the build
 target_include_directories(test PRIVATE
