@@ -1,0 +1,12 @@
+
+BasedOnStyle: LLVM
+IndentWidth: 4
+ColumnLimit: 180
+UseTab: Never
+AlignAfterOpenBracket: Align
+AllowShortFunctionsOnASingleLine: None
+BreakBeforeBraces: Allman
+MaxEmptyLinesToKeep: 3
+
+Language: Cpp
+Standard: Latest
