@@ -3,6 +3,11 @@
 
 #include <stdint.h>
 
+#define SSD1351_WIDTH 128
+#define SSD1351_HEIGHT 128
+
+
+
 /**
  * @brief Initialize the SSD1351 OLED display controller.
  * 
@@ -39,5 +44,7 @@ void ssd1351_fill_screen(uint16_t color);
 // Buffer management
 void ssd1351_clear(void);
 void ssd1351_update(void);
+
+uint16_t* ssd1351_get_framebuffer(void);
 
 #endif

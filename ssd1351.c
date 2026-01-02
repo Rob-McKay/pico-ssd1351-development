@@ -3,10 +3,6 @@
 #include "hardware/spi.h"
 #include "pico/stdlib.h"
 
-#define SSD1351_WIDTH 128
-#define SSD1351_HEIGHT 128
-
-
 #define SSD1351_SPI_INSTANCE spi0
 #define SSD1351_DC 5
 #define SSD1351_RST 4
@@ -195,7 +191,7 @@ void ssd1351_init(void)
     ssd1351_write(SSD1351_CMD_MUXRATIO, param, 1);
 
     // Horizontal addressing, unmirrored, C->B->A colours, normal scan, 65K colours
-    param[0] = SSD1351_HORIZONTAL_INCREMENT | SSD1351_NORMAL_COLUMN_ADDRESSING | SSD1351_COLOR_SEQUENCE_RGB | SSD1351_SCAN_NORMAL | SSD1351_ENABLE_COM_SPLIT | SSD1351_65K_COLORS;
+    param[0] = SSD1351_HORIZONTAL_INCREMENT | SSD1351_NORMAL_COLUMN_ADDRESSING | SSD1351_COLOR_SEQUENCE_RGB | SSD1351_SCAN_REVERSED | SSD1351_ENABLE_COM_SPLIT | SSD1351_65K_COLORS;
     ssd1351_write(SSD1351_CMD_SETREMAP, param, 1);
 
     param[0] = 0x00;
@@ -317,21 +313,11 @@ void ssd1351_fill_screen(uint16_t color)
 {
     const uint32_t total_pixels = SSD1351_WIDTH * SSD1351_HEIGHT;
 
-    // Set column address
-    set_column_address(0, SSD1351_WIDTH - 1);
-
-    // Set row address
-    set_row_address(0, SSD1351_HEIGHT - 1);
-
     // Prepare pixel data
     for (uint32_t i = 0; i < total_pixels; i++)
     {
         screen_buffer[i] = color;
     }
-
-    ssd1351_write(SSD1351_CMD_WRITE_RAM, NULL, 0);
-    gpio_put(SSD1351_DC, WRITE_DATA);
-    spi_write_blocking(SSD1351_SPI_INSTANCE, (uint8_t*)screen_buffer, SSD1351_WIDTH * SSD1351_HEIGHT * 2);
 }
 
 
@@ -339,4 +325,24 @@ void ssd1351_fill_screen(uint16_t color)
 void ssd1351_clear(void)
 {
     ssd1351_fill_screen(0x0000); // Fill screen with black
+}
+
+
+void ssd1351_update(void)
+{
+    // Set column address
+    set_column_address(0, SSD1351_WIDTH - 1);
+    
+    // Set row address
+    set_row_address(0, SSD1351_HEIGHT - 1);
+    
+    ssd1351_write(SSD1351_CMD_WRITE_RAM, NULL, 0);
+    gpio_put(SSD1351_DC, WRITE_DATA);
+    spi_write_blocking(SSD1351_SPI_INSTANCE, (uint8_t*)screen_buffer, SSD1351_WIDTH * SSD1351_HEIGHT * 2);
+}
+
+
+uint16_t *ssd1351_get_framebuffer(void)
+{
+    return screen_buffer;
 }

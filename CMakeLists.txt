@@ -37,7 +37,7 @@ add_link_options("-Wl,--print-memory-usage")
 
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(test test.c ssd1351.c)
+add_executable(test test.c ssd1351.c ssd1351.h character_data.cpp character_data.h)
 
 pico_set_program_name(test "test")
 pico_set_program_version(test "0.1")
