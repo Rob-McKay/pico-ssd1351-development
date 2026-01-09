@@ -37,7 +37,7 @@ add_link_options("-Wl,--print-memory-usage")
 
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(test test.c ssd1351.c ssd1351.h character_data.cpp character_data.h)
+add_executable(test test.c ssd1351.c ssd1351.h character_data.cpp character_data.h am2320.c am2320.h)
 
 pico_set_program_name(test "test")
 pico_set_program_version(test "0.1")
@@ -48,7 +48,7 @@ pico_enable_stdio_usb(test 1)
 
 # Add the standard library to the build
 target_link_libraries(test
-        pico_stdlib hardware_spi hardware_gpio)
+        pico_stdlib hardware_spi hardware_gpio hardware_i2c)
 
 
 # Add the standard include files to the build

@@ -1,5 +1,8 @@
 #include <stdint.h>
 
+#ifndef CHARACTER_DATA_H
+#define CHARACTER_DATA_H
+
 #ifdef __cplusplus
 extern "C"
 #endif
@@ -10,3 +13,5 @@ void write_string_at(const char* str, int x, int y, uint16_t fg_colour, uint16_t
 #ifdef __cplusplus
 }
 #endif
+
+#endif // CHARACTER_DATA_H
