@@ -105,14 +105,11 @@ uint8_t am2320_read_temperature_humidity(float *temperature, float *humidity)
 
     if (res < 0)
     {
-        sprintf(buffer, "I2C Read Error: %d\n", res);
-        write_string_at(buffer, 0, 0, 0xF800, 0x0000, ssd1351_get_framebuffer(), SSD1351_WIDTH, SSD1351_HEIGHT);
-        ssd1351_update();
+        // sprintf(buffer, "I2C Read Error: %d\n", res);
+        // write_string_at(buffer, 0, 0, 0xF800, 0x0000, ssd1351_get_framebuffer(), SSD1351_WIDTH, SSD1351_HEIGHT);
+        // ssd1351_update();
         return 2; // I2C read error
     }
-
-    sprintf(buffer, "%2d bytes", res);
-    write_string_at(buffer, 0, 0, 0xFFFF, 0x0000, ssd1351_get_framebuffer(), SSD1351_WIDTH, SSD1351_HEIGHT);
 
     // Verify checksum
     uint16_t crc_received = ((uint16_t)read_buffer[7] << 8) | read_buffer[6];
@@ -120,9 +117,9 @@ uint8_t am2320_read_temperature_humidity(float *temperature, float *humidity)
 
     if (crc_calculated != crc_received)
     {
-        sprintf(buffer, "CRC Error!\nCalculated %04X\nReceived %04X\n", crc_calculated, crc_received);
-        write_string_at(buffer, 0, 8, 0xF800, 0x0000, ssd1351_get_framebuffer(), SSD1351_WIDTH, SSD1351_HEIGHT);
-        ssd1351_update();
+        // sprintf(buffer, "CRC Error!\nCalculated %04X\nReceived %04X\n", crc_calculated, crc_received);
+        // write_string_at(buffer, 0, 8, 0xF800, 0x0000, ssd1351_get_framebuffer(), SSD1351_WIDTH, SSD1351_HEIGHT);
+        // ssd1351_update();
         return 1; // Checksum error
     }
 
@@ -137,9 +134,9 @@ uint8_t am2320_read_temperature_humidity(float *temperature, float *humidity)
         *temperature = -*temperature;
     }
 
-    sprintf(buffer, "Temp: %04X\n", raw_temperature);
-    write_string_at(buffer, 0, 0, 0xFFFF, 0x0000, ssd1351_get_framebuffer(), SSD1351_WIDTH, SSD1351_HEIGHT);
-    ssd1351_update();
+    // sprintf(buffer, "Temp: %04X\n", raw_temperature);
+    // write_string_at(buffer, 0, 0, 0xFFFF, 0x0000, ssd1351_get_framebuffer(), SSD1351_WIDTH, SSD1351_HEIGHT);
+    // ssd1351_update();
 
     return 0; // Success
 }
