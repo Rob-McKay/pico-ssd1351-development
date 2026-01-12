@@ -28,6 +28,8 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+#set(PICO_STDIO_USB:BOOL ON)
+
 if(WIN32)
     set(USERHOME $ENV{USERPROFILE})
 else()
@@ -59,7 +61,7 @@ add_link_options("-Wl,--print-memory-usage")
 
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(test test.c ssd1351.c ssd1351.h character_data.cpp character_data.h am2320.c am2320.h ens160.c ens160.h)
+add_executable(test test.c ssd1351.c ssd1351.h character_data.cpp character_data.h am2320.c am2320.h ens160.c ens160.h bmp280.c bmp280.h)
 
 pico_set_program_name(test "test")
 pico_set_program_version(test "0.1")

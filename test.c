@@ -28,6 +28,10 @@
 #include "character_data.h"
 #include "am2320.h"
 #include "ens160.h"
+#include "bmp280.h"
+
+
+
 
 int main()
 {
@@ -35,6 +39,7 @@ int main()
     ssd1351_init();
     am2320_init();
     ens160_init();
+    bmp280_init();
 
     uint16_t colour = 0x0000U;
     uint16_t* framebuffer = ssd1351_get_framebuffer();
@@ -51,6 +56,9 @@ int main()
     uint16_t eco2 = 0;
     uint16_t tvoc = 0;
     uint8_t aqi = 0;
+
+    float bmp_temperature = 0.0f;
+    float bmp_pressure = 0.0f;
 
     struct ENS160_status_s status = {0};
     ens160_write_mode(ENS160_STANDARD_MODE);
@@ -69,8 +77,12 @@ int main()
         ens160_read_tvoc(&tvoc);
         ens160_read_air_quality_index(&aqi);
         sprintf(buffer, "eCO2: %4d ppm\nTVOC: %4d ppb\nAQI: %d\n", eco2, tvoc, aqi);
-        write_string_at(buffer, 0, 64, 0xFFFF, colour, ssd1351_get_framebuffer(), SSD1351_WIDTH, SSD1351_HEIGHT);
+        write_string_at(buffer, 0, 32, 0xFFFF, colour, ssd1351_get_framebuffer(), SSD1351_WIDTH, SSD1351_HEIGHT);
         
+        bmp280_read_temperature_pressure(&bmp_temperature, &bmp_pressure);
+        sprintf(buffer, "BMP Temp: %.2f C\nBMP Pres: %.2f Pa\n", bmp_temperature, bmp_pressure);
+        write_string_at(buffer, 0, 64, 0xFFFF, colour, ssd1351_get_framebuffer(), SSD1351_WIDTH, SSD1351_HEIGHT);
+
         ssd1351_update();
 
         // Update ENS160 with latest temperature and humidity
