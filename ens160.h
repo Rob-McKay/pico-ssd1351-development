@@ -33,6 +33,18 @@
 
 
 
+enum ENS160_air_quality_index_e {
+    ENS160_AQI_UNKNOWN = 0,
+    ENS160_AQI_EXCELLENT = 1,
+    ENS160_AQI_GOOD = 2,
+    ENS160_AQI_MODERATE = 3,
+    ENS160_AQI_POOR = 4,
+    ENS160_AQI_UNHEALTHY = 5,
+    ENS160_AQI_INVALID = 6,
+    ENS160_AQI_ERROR = 7
+};
+
+
 /** Initialize the ENS160 sensor connection */
 void ens160_init(void);
 
@@ -111,7 +123,7 @@ int ens160_read_status(struct ENS160_status_s *status);
  * 
  * @return ENS160_SUCCESS on success
  */
-int ens160_read_air_quality_index(uint8_t *aqi);
+int ens160_read_air_quality_index(enum ENS160_air_quality_index_e *aqi);
 
 
 

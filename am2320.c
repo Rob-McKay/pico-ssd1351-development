@@ -32,6 +32,7 @@
 
 #include "pico/binary_info.h"
 
+#include <math.h>
 #include <stdio.h>
 
 #define AM2320_I2C_INSTANCE i2c0
@@ -111,27 +112,38 @@ uint8_t am2320_read_temperature_humidity(float *temperature, float *humidity)
     uint8_t read_buffer[12] = {0};
     char buffer[64];
 
+    *temperature = NAN;
+    *humidity = NAN;
+
+    size_t retries = 0;
+
     // Send read command
     int res;
     do
     {
-        res = i2c_write_blocking(AM2320_I2C_INSTANCE, AM2320_I2C_ADDRESS, write_buffer, sizeof(write_buffer), false);
+        absolute_time_t timeout_val = get_absolute_time() + 10000; // 10ms timeout
+        res = i2c_write_blocking_until(AM2320_I2C_INSTANCE, AM2320_I2C_ADDRESS, write_buffer, sizeof(write_buffer), false, timeout_val);
         if (res < 0)
         {
-            i2c_read_blocking(AM2320_I2C_INSTANCE, AM2320_I2C_ADDRESS, read_buffer, 8, false);
+            timeout_val = get_absolute_time() + 10000; // 10ms timeout
+            int res2 = i2c_read_blocking_until(AM2320_I2C_INSTANCE, AM2320_I2C_ADDRESS, read_buffer, 8, false, timeout_val);
+            printf("I2C Write Error: %d, Read Attempt Result: %d\n", res, res2);
         }
         sleep_ms(2);
-    } while (res < 0);
+    } while ((res < 0) && (retries++ < 50));
+
+    sleep_ms(15); // Wait for sensor to process
 
     // Read 6 bytes of data
-    res = i2c_read_blocking(AM2320_I2C_INSTANCE, AM2320_I2C_ADDRESS, read_buffer, 8, false);
+    absolute_time_t timeout_val = get_absolute_time() + 10000; // 10ms timeout
+    res = i2c_read_blocking_until(AM2320_I2C_INSTANCE, AM2320_I2C_ADDRESS, read_buffer, 8, false, timeout_val);
 
     if (res < 0)
     {
         // sprintf(buffer, "I2C Read Error: %d\n", res);
         // write_string_at(buffer, 0, 0, 0xF800, 0x0000, ssd1351_get_framebuffer(), SSD1351_WIDTH, SSD1351_HEIGHT);
         // ssd1351_update();
-        return 2; // I2C read error
+        return -2; // I2C read error
     }
 
     // Verify checksum
@@ -143,7 +155,7 @@ uint8_t am2320_read_temperature_humidity(float *temperature, float *humidity)
         // sprintf(buffer, "CRC Error!\nCalculated %04X\nReceived %04X\n", crc_calculated, crc_received);
         // write_string_at(buffer, 0, 8, 0xF800, 0x0000, ssd1351_get_framebuffer(), SSD1351_WIDTH, SSD1351_HEIGHT);
         // ssd1351_update();
-        return 1; // Checksum error
+        return -1; // Checksum error
     }
 
     // Extract humidity and temperature

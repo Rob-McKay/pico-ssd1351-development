@@ -81,7 +81,16 @@
 #define TEMPERATURE_SCALAR 64U
 
 #define HUMIDITY_SCALAR 512U
+#define AQI_MASK 0x03U
 
+
+
+/**
+ * @brief Initialize the ENS160 sensor.
+ *
+ * This function initializes the I2C interface for communication with the
+ * ENS160 air quality sensor.
+ */
 void ens160_init(void)
 {
     int rate = i2c_init(ENS160_I2C_INSTANCE, ENS160_I2C_SPEED);
@@ -97,19 +106,57 @@ void ens160_init(void)
 
 
 
-static void ens160_read_register(uint8_t reg, size_t size, uint8_t *data)
+/**
+ * @brief Read a register from the ENS160 sensor.
+ *
+ * This function reads data from a specified register of the ENS160 sensor
+ * over the I2C interface.
+ *
+ * @param reg The register address to read from.
+ * @param size The number of bytes to read.
+ * @param data Pointer to the buffer to store the read data.
+ * @return ENS160_SUCCESS on success, error code otherwise.
+ */
+static int ens160_read_register(uint8_t reg, size_t size, uint8_t *data)
 {
     uint8_t write_buffer[1] = {reg};
 
+    absolute_time_t timeout_val = get_absolute_time() + 10000; // 10ms timeout
+
     // Write register address
-    i2c_write_blocking(ENS160_I2C_INSTANCE, ENS160_I2C_ADDRESS, write_buffer, sizeof(write_buffer), true);
+    int err = i2c_write_blocking_until(ENS160_I2C_INSTANCE, ENS160_I2C_ADDRESS, write_buffer, sizeof(write_buffer), true, timeout_val);
+
+    if (err != sizeof(write_buffer))
+    {
+        printf("ENS160 I2C write error %d reading reg %02X\n", err, reg);
+        return err;
+    }
+    timeout_val = get_absolute_time() + 10000; // 10ms timeout
 
     // Read register value
-    i2c_read_blocking(ENS160_I2C_INSTANCE, ENS160_I2C_ADDRESS, data, size, false);
+    err = i2c_read_blocking_until(ENS160_I2C_INSTANCE, ENS160_I2C_ADDRESS, data, size, false, timeout_val);
+    if (err != size)
+    {
+        printf("ENS160 I2C read error %d reading reg %02X\n", err, reg);
+        return err;
+    }
+
+    return ENS160_SUCCESS; // Success
 }
 
 
 
+/**
+ * @brief Write to a register of the ENS160 sensor.
+ *
+ * This function writes data to a specified register of the ENS160 sensor
+ * over the I2C interface.
+ *
+ * @param reg The register address to write to.
+ * @param size The number of bytes to write.
+ * @param data Pointer to the buffer containing the data to write.
+ * @return The number of bytes written on success, error code otherwise.
+ */
 static int ens160_write_register(uint8_t reg, size_t size, void *data)
 {
     if (size > MAX_REGISTER_WRITE_SIZE)
@@ -122,29 +169,40 @@ static int ens160_write_register(uint8_t reg, size_t size, void *data)
     memmove(&write_buffer[1], data, size);
 
     // Write register address and value
-    i2c_write_blocking(ENS160_I2C_INSTANCE, ENS160_I2C_ADDRESS, write_buffer, 1 + size, false);
+    absolute_time_t timeout_val = get_absolute_time() + 10000; // 10ms timeout
+    int err = i2c_write_blocking_until(ENS160_I2C_INSTANCE, ENS160_I2C_ADDRESS, write_buffer, 1 + size, false, timeout_val);
 
-    return ENS160_SUCCESS; // Success
+    return err;
 }
 
 
 
+/**
+ * @brief Read the part ID of the ENS160 sensor.
+ *
+ * This function reads the part ID from the ENS160 sensor.
+ *
+ * @param part_id Pointer to store the read part ID.
+ * @return ENS160_SUCCESS on success, error code otherwise.
+ */
 int ens160_read_part_id(uint16_t *part_id)
 {
     uint8_t read_buffer[ENS160_REG_PART_ID_SIZE] = {0};
     ens160_read_register(ENS160_REG_PART_ID, ENS160_REG_PART_ID_SIZE, read_buffer);
     *part_id = ((uint16_t)read_buffer[1] << 8) | read_buffer[0];
-
-    char buffer[64];
-    sprintf(buffer, "Part ID: %04X\n", *part_id);
-    write_string_at(buffer, 0, 40, 0xFFFF, 0x0000, ssd1351_get_framebuffer(), SSD1351_WIDTH, SSD1351_HEIGHT);
-    ssd1351_update();
-
     return ENS160_SUCCESS; // Success
 }
 
 
 
+/**
+ * @brief Read the current operating mode of the ENS160 sensor.
+ *
+ * This function reads the current operating mode from the ENS160 sensor.
+ *
+ * @param mode Pointer to store the read operating mode.
+ * @return ENS160_SUCCESS on success, error code otherwise.
+ */
 int ens160_read_mode(ENS160_mode_t *mode)
 {
     uint8_t read_buffer[ENS160_REG_OP_MODE_SIZE] = {0};
@@ -156,6 +214,14 @@ int ens160_read_mode(ENS160_mode_t *mode)
 
 
 
+/**
+ * @brief Write the operating mode to the ENS160 sensor.
+ *
+ * This function writes the specified operating mode to the ENS160 sensor.
+ *
+ * @param mode The operating mode to set.
+ * @return The number of bytes written on success, error code otherwise.
+ */
 int ens160_write_mode(ENS160_mode_t mode)
 {
     uint8_t write_buffer[ENS160_REG_OP_MODE_SIZE];
@@ -165,6 +231,14 @@ int ens160_write_mode(ENS160_mode_t mode)
 
 
 
+/**
+ * @brief Read the configuration register of the ENS160 sensor.
+ *
+ * This function reads the configuration register from the ENS160 sensor.
+ *
+ * @param config Pointer to store the read configuration value.
+ * @return ENS160_SUCCESS on success, error code otherwise.
+ */
 int ens160_read_config(uint8_t *config)
 {
     uint8_t read_buffer[ENS160_REG_CONFIG_SIZE] = {0};
@@ -176,6 +250,14 @@ int ens160_read_config(uint8_t *config)
 
 
 
+/**
+ * @brief Write the configuration register to the ENS160 sensor.
+ *
+ * This function writes the specified configuration value to the ENS160 sensor.
+ *
+ * @param config The configuration value to set.
+ * @return The number of bytes written on success, error code otherwise.
+ */
 int ens160_read_temperature_humidity(float *temperature, float *humidity)
 {
     uint8_t read_buffer[ENS160_REG_TEMP_IN_SIZE] = {0};
@@ -190,25 +272,51 @@ int ens160_read_temperature_humidity(float *temperature, float *humidity)
 
 
 
+/**
+ * @brief Write temperature and humidity to the ENS160 sensor.
+ *
+ * This function writes the specified temperature and humidity values to the
+ * ENS160 sensor.
+ *
+ * @param temperature The temperature value to set (in Celsius).
+ * @param humidity The humidity value to set (in %RH).
+ * @return The number of bytes written on success, error code otherwise.
+ */
 int ens160_write_temperature_humidity(float temperature, float humidity)
 {
-    uint16_t temp_raw = (uint16_t)((KELVIN_TEMPERATURE_OFFSET + temperature) * TEMPERATURE_SCALAR); // Example conversion
-    uint16_t humidity_raw = (uint16_t)(humidity * HUMIDITY_SCALAR);                                 // Example conversion
+    int res = ENS160_SUCCESS;
+    if (temperature == temperature)
+    {
+        uint16_t temp_raw = (uint16_t)((KELVIN_TEMPERATURE_OFFSET + temperature) * TEMPERATURE_SCALAR);
 
-    uint8_t write_buffer[ENS160_REG_TEMP_IN_SIZE];
-    write_buffer[0] = (temp_raw >> 8) & 0xFFU;
-    write_buffer[1] = temp_raw & 0xFFU;
-    ens160_write_register(ENS160_REG_TEMP_IN, ENS160_REG_TEMP_IN_SIZE, &write_buffer);
+        uint8_t write_buffer[ENS160_REG_TEMP_IN_SIZE];
+        write_buffer[0] = (temp_raw >> 8) & 0xFFU;
+        write_buffer[1] = temp_raw & 0xFFU;
+        res = ens160_write_register(ENS160_REG_TEMP_IN, ENS160_REG_TEMP_IN_SIZE, &write_buffer);
+    }
 
-    write_buffer[0] = (humidity_raw >> 8) & 0xFFU;
-    write_buffer[1] = humidity_raw & 0xFFU;
-    ens160_write_register(ENS160_REG_HUMIDITY_IN, ENS160_REG_HUMIDITY_IN_SIZE, &write_buffer);
+    if ((res == ENS160_SUCCESS) && (humidity == humidity))
+    {
+        uint16_t humidity_raw = (uint16_t)(humidity * HUMIDITY_SCALAR);
+        uint8_t write_buffer[ENS160_REG_HUMIDITY_IN_SIZE];
+        write_buffer[0] = (humidity_raw >> 8) & 0xFFU;
+        write_buffer[1] = humidity_raw & 0xFFU;
+        res = ens160_write_register(ENS160_REG_HUMIDITY_IN, ENS160_REG_HUMIDITY_IN_SIZE, &write_buffer);
+    }
 
-    return ENS160_SUCCESS; // Success
+    return res;
 }
 
 
 
+/**
+ * @brief Read the status register of the ENS160 sensor.
+ *
+ * This function reads the status register from the ENS160 sensor.
+ *
+ * @param status Pointer to store the read status.
+ * @return ENS160_SUCCESS on success, error code otherwise.
+ */
 int ens160_read_status(struct ENS160_status_s *status)
 {
     uint8_t read_buffer[ENS160_REG_STATUS_SIZE] = {0};
@@ -225,21 +333,39 @@ int ens160_read_status(struct ENS160_status_s *status)
 }
 
 
-#define AQI_MASK 0x03U
 
-
-
-int ens160_read_air_quality_index(uint8_t *aqi)
+/**
+ * @brief Read the Air Quality Index (AQI) from the ENS160 sensor.
+ *
+ * This function reads the AQI value from the ENS160 sensor.
+ *
+ * @param aqi Pointer to store the read AQI value.
+ * @return ENS160_SUCCESS on success, error code otherwise.
+ */
+int ens160_read_air_quality_index(enum ENS160_air_quality_index_e *aqi)
 {
     uint8_t read_buffer[ENS160_REG_AQI_SIZE] = {0};
-    ens160_read_register(ENS160_REG_AQI, ENS160_REG_AQI_SIZE, read_buffer);
-    *aqi = read_buffer[0] & AQI_MASK;
-
-    return ENS160_SUCCESS; // Success
+    if (ens160_read_register(ENS160_REG_AQI, ENS160_REG_AQI_SIZE, read_buffer) == ENS160_SUCCESS)
+    {
+        *aqi = (enum ENS160_air_quality_index_e)(read_buffer[0] & AQI_MASK);
+        return ENS160_SUCCESS; // Success
+    }
+    
+    *aqi = ENS160_AQI_UNKNOWN;
+    return ENS160_ERROR; // Error
 }
 
 
 
+/**
+ * @brief Read the TVOC value from the ENS160 sensor.
+ *
+ * This function reads the Total Volatile Organic Compounds (TVOC) value
+ * from the ENS160 sensor.
+ *
+ * @param tvoc Pointer to store the read TVOC value.
+ * @return ENS160_SUCCESS on success, error code otherwise.
+ */
 int ens160_read_tvoc(uint16_t *tvoc)
 {
     uint8_t read_buffer[ENS160_REG_TVOC_SIZE] = {0};
@@ -251,6 +377,14 @@ int ens160_read_tvoc(uint16_t *tvoc)
 
 
 
+/**
+ * @brief Read the eCO2 value from the ENS160 sensor.
+ *
+ * This function reads the equivalent CO2 (eCO2) value from the ENS160 sensor.
+ *
+ * @param eco2 Pointer to store the read eCO2 value.
+ * @return ENS160_SUCCESS on success, error code otherwise.
+ */
 int ens160_read_eco2(uint16_t *eco2)
 {
     uint8_t read_buffer[ENS160_REG_ECO2_SIZE] = {0};
@@ -259,5 +393,3 @@ int ens160_read_eco2(uint16_t *eco2)
 
     return ENS160_SUCCESS; // Success
 }
-
-

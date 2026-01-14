@@ -28,6 +28,7 @@
 #include "pico/stdlib.h"
 
 #include "pico/binary_info.h"
+#include "pico/time.h"
 
 #include <math.h>
 #include <stdio.h>
@@ -110,14 +111,18 @@ static int read_register(uint8_t reg, size_t size, uint8_t *data)
 {
     uint8_t write_buffer[1] = {reg};
 
+    absolute_time_t timeout_val = get_absolute_time() + 10000; // 10ms timeout
+
     // Write register address
-    if (i2c_write_blocking(BMP280_I2C_INSTANCE, BMP280_I2C_ADDRESS, write_buffer, sizeof(write_buffer), true) != sizeof(write_buffer))
+    if (i2c_write_blocking_until(BMP280_I2C_INSTANCE, BMP280_I2C_ADDRESS, write_buffer, sizeof(write_buffer), true, timeout_val) != sizeof(write_buffer))
     {
         printf("BMP280 I2C write error reading reg %02X\n", reg);
         return BMP280_ERROR;
     }
+
+    timeout_val = get_absolute_time() + 10000; // 10ms timeout
     // Read register value
-    if (i2c_read_blocking(BMP280_I2C_INSTANCE, BMP280_I2C_ADDRESS, data, size, false) != size)
+    if (i2c_read_blocking_until(BMP280_I2C_INSTANCE, BMP280_I2C_ADDRESS, data, size, false, timeout_val) != size)
     {
         printf("BMP280 I2C read error reading reg %02X\n", reg);
         return BMP280_ERROR;
@@ -275,8 +280,8 @@ void bmp280_init(void)
 
     get_calibration_data();
 
-    // Configure the BMP280 (normal mode, temp and pressure oversampling x1, standby 500ms, filter off)
-    uint8_t ctrl_meas = (0x01U << 5) | (0x01U << 2) | 0x03U; // osrs_t=1, osrs_p=1, mode=normal
+    // Configure the BMP280 (normal mode, temp and pressure oversampling x4, standby 500ms)
+    uint8_t ctrl_meas = (0x03U << 5) | (0x03U << 2) | 0x03U; // osrs_t=3, osrs_p=3, mode=normal
     write_register(BMP280_REG_CTRL_MEAS, 1, &ctrl_meas);
 }
 
