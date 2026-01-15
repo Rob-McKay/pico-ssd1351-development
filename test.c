@@ -44,7 +44,7 @@ int main()
     gpio_init(PICO_DEFAULT_LED_PIN);
     gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
 
-    uint16_t colour = 0x0000U;
+    uint16_t colour = 0x0020U;
     uint16_t *framebuffer = ssd1351_get_framebuffer();
     char buffer[64];
 
